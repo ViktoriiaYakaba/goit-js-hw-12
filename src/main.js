@@ -40,6 +40,7 @@ let totalHits;
 
 
 form.addEventListener("submit", async (event) => {
+  page = 1;
   showLoader();
   gallery.innerHTML = " ";
   event.preventDefault();
