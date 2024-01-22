@@ -8,7 +8,7 @@ import axios from 'axios'
 const form = document.querySelector(".form");
 const gallery = document.querySelector(".gallery");
 const container = document.querySelector("div");
-const inputDate = document.querySelector("input");
+const searchInput = document.querySelector("input");
 const loadBtn = document.querySelector('.btn-load');
 
 const showLoader = () => {
@@ -35,33 +35,36 @@ const hideButton = () => {
 
 let page = 1;
 let per_page = 40;
-
-
-let lightbox;
+let query = " ";
 let totalHits;
+
 
 form.addEventListener("submit", async (event) => {
   showLoader();
   gallery.innerHTML = " ";
   event.preventDefault();
-  page += 1;
   try {
+    query = searchInput.value;
     const photos = await searchImages();
     renderImages(photos);
     form.reset();
     hideLoader();
     showButton();
+    if (photos.hits.length < 40) {
+      hideButton();
+    }
     if (photos.hits.length === 0) {
+      hideButton();
       iziToast.error({
         message: 'Sorry, there are no images matching <br>your search query. Please try again!</br>',
         position: 'center',
         transitionIn: "fadeInLeft",
       });
-      hideLoader();
     }
   } catch (error) {
-    console.log(error);
-    hideButton();
+    iziToast.error({
+    title: 'Error',
+});
   }
 });
 
@@ -80,7 +83,7 @@ loadBtn.addEventListener("click", async () => {
       top: cardHeight * 2,
       behavior: 'smooth',
     });
-    if (gallery.children.length === photos.totalHits) {
+    if (gallery.children.length >= totalHits || photos.hits.length < per_page) {
       iziToast.warning({
         message:
           'We are sorry, but you have reached the end of search results.',
@@ -90,27 +93,33 @@ loadBtn.addEventListener("click", async () => {
       hideButton();
     }
   } catch (error) {
-    console.log(error);
+    iziToast.error({
+    title: 'Error',
+});
     hideLoader();
   }
 });
 
 async function searchImages() {
-  const searchTerm = inputDate.value;
-  const apiKey = '41764579-b97d65b31c0abd4efd9d4830e';
-  const params = new URLSearchParams({
-    key: apiKey,
-    q: searchTerm,
-    image_type: "photo",
-    orientation: "horizontal",
-    safesearch: true,
-    page: page,
-    per_page: per_page
-  })
-  const response = await axios.get(`https://pixabay.com/api/?${params}`);
-  totalHits = response.data.totalHits;
+  try {
+    const apiKey = '41764579-b97d65b31c0abd4efd9d4830e';
+    const params = new URLSearchParams({
+      key: apiKey,
+      q: query,
+      image_type: "photo",
+      orientation: "horizontal",
+      safesearch: true,
+      page: page,
+      per_page: per_page
+    })
+    const response = await axios.get(`https://pixabay.com/api/?${params}`);
+    totalHits = response.data.totalHits;
 
-  return response.data;
+    return response.data;
+  } catch (error) {
+    console.log(error);
+    throw WebTransportError;
+  }
 };
 
 function renderImages(data) {
@@ -127,7 +136,7 @@ function renderImages(data) {
           }).join('');
         
         gallery.insertAdjacentHTML("beforeend", markup);
-          lightbox = new SimpleLightbox('.gallery a', {
+          const lightbox = new SimpleLightbox('.gallery a', {
           captions: true,
           captionType: 'attr',
           captionsData: 'alt',
@@ -138,7 +147,7 @@ function renderImages(data) {
         });
 
         lightbox.on('show.simplelightbox').refresh();
-        hideLoader();
+  hideLoader();
 };
 
 
